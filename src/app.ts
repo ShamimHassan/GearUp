@@ -3,6 +3,7 @@ import cors from 'cors'
 import { errorHandler } from './middleware/errorHandler'
 import authRoutes from './routes/authRoutes'
 import gearRoutes from './routes/gearRoutes'
+import providerRoutes from './routes/providerRoutes'
 
 const app = express()
 
@@ -16,6 +17,7 @@ app.get('/', (req, res) => {
 
 app.use('/api', gearRoutes)
 app.use('/api/auth', authRoutes)
+app.use('/api/provider', providerRoutes)
 
 app.use('*', (req, res) => {
   res.status(404).json({ success: false, message: 'Route not found', errorDetails: null })
