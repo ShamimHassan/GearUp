@@ -126,7 +126,11 @@ export const getProviderOrders = async (req: AuthRequest, res: Response, next: N
     const orders = await prisma.rentalOrder.findMany({
       where: { gear: { providerId: req.user.id } },
       include: {
-        gear: true,
+        gear: {
+          include: {
+            category: true
+          }
+        },
         customer: { select: { id: true, name: true, email: true } },
         payment: true
       },
@@ -164,7 +168,11 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response, next: N
       where: { id },
       data: { status },
       include: {
-        gear: true,
+        gear: {
+          include: {
+            category: true
+          }
+        },
         customer: { select: { id: true, name: true, email: true } },
         payment: true
       }
