@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import { errorHandler } from './middleware/errorHandler'
 
 const app = express()
 
@@ -14,5 +15,7 @@ app.get('/', (req, res) => {
 app.use('*', (req, res) => {
   res.status(404).json({ success: false, message: 'Route not found', errorDetails: null })
 })
+
+app.use(errorHandler)
 
 export default app
