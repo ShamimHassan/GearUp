@@ -1,6 +1,11 @@
 import { z } from 'zod'
 import { UserRole, RentalStatus, PaymentMethod, PaymentStatus } from '@prisma/client'
 
+// Admin validation schemas
+export const updateUserStatusSchema = z.object({
+  isActive: z.boolean().refine((val) => val !== undefined, 'isActive is required')
+})
+
 export const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
