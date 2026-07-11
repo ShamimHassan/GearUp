@@ -106,7 +106,7 @@ model RentalOrder {
 
 model Payment {
   id             String        @id @default(uuid())
-  transactionId  String
+  transactionId  String        @unique
   rentalOrderId  String        @unique
   amount         Decimal       @db.Decimal(10, 2)
   method         PaymentMethod
