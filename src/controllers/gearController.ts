@@ -99,3 +99,30 @@ export const getAllCategories = async (req: Request, res: Response, next: NextFu
     next(error)
   }
 }
+
+export const getGearReviews = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params
+
+    const gear = await prisma.gearItem.findUnique({
+      where: { id },
+    })
+
+    if (!gear) {
+      throw new AppError('Gear not found', 404)
+    }
+
+    const reviews = await prisma.review.findMany({
+      where: { gearId: id },
+      include: { user: { select: { id: true, name: true } } },
+      orderBy: { createdAt: 'desc' }
+    })
+
+    res.status(200).json({
+      success: true,
+      data: reviews
+    })
+  } catch (error) {
+    next(error)
+  }
+}
