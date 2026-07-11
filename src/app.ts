@@ -5,6 +5,7 @@ import authRoutes from './routes/authRoutes'
 import gearRoutes from './routes/gearRoutes'
 import providerRoutes from './routes/providerRoutes'
 import rentalRoutes from './routes/rentalRoutes'
+import paymentRoutes from './routes/payment.routes'
 
 const app = express()
 
@@ -20,6 +21,7 @@ app.use('/api', gearRoutes)
 app.use('/api/auth', authRoutes)
 app.use('/api/provider', providerRoutes)
 app.use('/api/rentals', rentalRoutes)
+app.use('/api/payments', paymentRoutes)
 
 app.use('*', (req, res) => {
   res.status(404).json({ success: false, message: 'Route not found', errorDetails: null })

@@ -112,6 +112,7 @@ model Payment {
   method         PaymentMethod
   status         PaymentStatus @default(PENDING)
   paidAt         DateTime?
+  gatewayResponse Json?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
