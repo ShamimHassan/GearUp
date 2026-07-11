@@ -18,9 +18,6 @@ dist/
 *.swp
 *.swo
 
-# Documentation
-*.md
-
 # Logs
 *.log
 npm-debug.log*
