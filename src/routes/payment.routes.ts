@@ -26,7 +26,17 @@ router.post(
 
 router.post(
   '/confirm',
-  validate(confirmPaymentQuerySchema, 'query'),
+  (req: any, res: any, next: any) => {
+    // SSLCommerz sends params in query string; manual testing may send in body
+    // Merge both so validation always finds the fields
+    const merged = { ...req.body, ...req.query }
+    try {
+      confirmPaymentQuerySchema.parse(merged)
+      next()
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.errors?.[0]?.message || 'Validation error', errorDetails: error })
+    }
+  },
   paymentController.confirmPayment,
 );
 
@@ -42,7 +52,14 @@ router.get(
   '/:paymentId',
   authenticate,
   authorize(UserRole.CUSTOMER),
-  validate(getPaymentByIdParamsSchema, 'query'),
+  (req: any, res: any, next: any) => {
+    try {
+      getPaymentByIdParamsSchema.parse(req.params)
+      next()
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.errors?.[0]?.message || 'Validation error', errorDetails: error })
+    }
+  },
   paymentController.getPaymentById,
 );
 

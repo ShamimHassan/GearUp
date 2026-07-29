@@ -1,17 +1,57 @@
 import { PrismaClient, UserRole, RentalStatus, PaymentMethod, PaymentStatus } from '@prisma/client'
 import bcrypt from 'bcrypt'
+import { randomUUID } from 'crypto'
 
 const prisma = new PrismaClient()
+
+// Fixed UUIDs so upsert works consistently across re-runs
+const IDS = {
+  // Users
+  admin:     'a0000001-0000-4000-a000-000000000001',
+  provider1: 'b0000001-0000-4000-b000-000000000001',
+  provider2: 'b0000002-0000-4000-b000-000000000002',
+  provider3: 'b0000003-0000-4000-b000-000000000003',
+  customer1: 'c0000001-0000-4000-c000-000000000001',
+  customer2: 'c0000002-0000-4000-c000-000000000002',
+  customer3: 'c0000003-0000-4000-c000-000000000003',
+  // Categories
+  catCycling:    'd0000001-0000-4000-d000-000000000001',
+  catCamping:    'd0000002-0000-4000-d000-000000000002',
+  catFitness:    'd0000003-0000-4000-d000-000000000003',
+  catWater:      'd0000004-0000-4000-d000-000000000004',
+  // Gear
+  gear1: 'e0000001-0000-4000-e000-000000000001',
+  gear2: 'e0000002-0000-4000-e000-000000000002',
+  gear3: 'e0000003-0000-4000-e000-000000000003',
+  gear4: 'e0000004-0000-4000-e000-000000000004',
+  gear5: 'e0000005-0000-4000-e000-000000000005',
+  gear6: 'e0000006-0000-4000-e000-000000000006',
+  gear7: 'e0000007-0000-4000-e000-000000000007',
+  gear8: 'e0000008-0000-4000-e000-000000000008',
+  // Rentals
+  rental1: 'f0000001-0000-4000-f000-000000000001',
+  rental2: 'f0000002-0000-4000-f000-000000000002',
+  rental3: 'f0000003-0000-4000-f000-000000000003',
+  // Payments
+  payment1: '00000001-0000-4000-0000-000000000001',
+  payment2: '00000002-0000-4000-0000-000000000002',
+  payment3: '00000003-0000-4000-0000-000000000003',
+  // Reviews
+  review1: '11000001-0000-4000-1100-000000000001',
+  review2: '11000002-0000-4000-1100-000000000002',
+  review3: '11000003-0000-4000-1100-000000000003',
+}
 
 async function main() {
   console.log('Seeding database...')
 
-  // Create admin user
+  // ── Admin ──────────────────────────────────────────────────────────────────
   const hashedPassword = await bcrypt.hash('admin123', 10)
   const admin = await prisma.user.upsert({
     where: { email: 'admin@gearup.com' },
     update: {},
     create: {
+      id: IDS.admin,
       name: 'GearUp Admin',
       email: 'admin@gearup.com',
       password: hashedPassword,
@@ -19,40 +59,41 @@ async function main() {
       isActive: true
     }
   })
-  console.log('Admin user created:', admin.email)
+  console.log('Admin created:', admin.email)
 
-  // Create sample categories
-  const categories = await prisma.$transaction([
+  // ── Categories ─────────────────────────────────────────────────────────────
+  const [catCycling, catCamping, catFitness, catWater] = await prisma.$transaction([
     prisma.category.upsert({
       where: { name: 'Cycling' },
       update: {},
-      create: { name: 'Cycling', description: 'Bicycles and cycling equipment' }
+      create: { id: IDS.catCycling, name: 'Cycling', description: 'Bicycles and cycling equipment' }
     }),
     prisma.category.upsert({
       where: { name: 'Camping' },
       update: {},
-      create: { name: 'Camping', description: 'Tents, sleeping bags, and camping gear' }
+      create: { id: IDS.catCamping, name: 'Camping', description: 'Tents, sleeping bags, and camping gear' }
     }),
     prisma.category.upsert({
       where: { name: 'Fitness' },
       update: {},
-      create: { name: 'Fitness', description: 'Gym equipment and fitness gear' }
+      create: { id: IDS.catFitness, name: 'Fitness', description: 'Gym equipment and fitness gear' }
     }),
     prisma.category.upsert({
       where: { name: 'Water Sports' },
       update: {},
-      create: { name: 'Water Sports', description: 'Kayaks, paddleboards, and water equipment' }
+      create: { id: IDS.catWater, name: 'Water Sports', description: 'Kayaks, paddleboards, and water equipment' }
     })
   ])
-  console.log('Categories created:', categories.map(c => c.name))
+  console.log('Categories created:', [catCycling, catCamping, catFitness, catWater].map(c => c.name))
 
-  // Create provider users with Bangladeshi names
+  // ── Providers ──────────────────────────────────────────────────────────────
   const providerPassword = await bcrypt.hash('provider123', 10)
-  const providers = await prisma.$transaction([
+  const [provider1, provider2, provider3] = await prisma.$transaction([
     prisma.user.upsert({
       where: { email: 'rahman@gearup.com' },
       update: {},
       create: {
+        id: IDS.provider1,
         name: 'Abdul Rahman',
         email: 'rahman@gearup.com',
         password: providerPassword,
@@ -66,6 +107,7 @@ async function main() {
       where: { email: 'khan@gearup.com' },
       update: {},
       create: {
+        id: IDS.provider2,
         name: 'Fatema Khan',
         email: 'khan@gearup.com',
         password: providerPassword,
@@ -79,6 +121,7 @@ async function main() {
       where: { email: 'hossain@gearup.com' },
       update: {},
       create: {
+        id: IDS.provider3,
         name: 'Sakib Hossain',
         email: 'hossain@gearup.com',
         password: providerPassword,
@@ -89,15 +132,16 @@ async function main() {
       }
     })
   ])
-  console.log('Providers created:', providers.map(p => p.name))
+  console.log('Providers created:', [provider1, provider2, provider3].map(p => p.name))
 
-  // Create customer users with Bangladeshi names
+  // ── Customers ──────────────────────────────────────────────────────────────
   const customerPassword = await bcrypt.hash('customer123', 10)
-  const customers = await prisma.$transaction([
+  const [customer1, customer2, customer3] = await prisma.$transaction([
     prisma.user.upsert({
       where: { email: 'akter@gearup.com' },
       update: {},
       create: {
+        id: IDS.customer1,
         name: 'Rina Akter',
         email: 'akter@gearup.com',
         password: customerPassword,
@@ -111,6 +155,7 @@ async function main() {
       where: { email: 'islam@gearup.com' },
       update: {},
       create: {
+        id: IDS.customer2,
         name: 'Kamrul Islam',
         email: 'islam@gearup.com',
         password: customerPassword,
@@ -124,6 +169,7 @@ async function main() {
       where: { email: 'das@gearup.com' },
       update: {},
       create: {
+        id: IDS.customer3,
         name: 'Priya Das',
         email: 'das@gearup.com',
         password: customerPassword,
@@ -134,16 +180,16 @@ async function main() {
       }
     })
   ])
-  console.log('Customers created:', customers.map(c => c.name))
+  console.log('Customers created:', [customer1, customer2, customer3].map(c => c.name))
 
-  // Create more gear items
+  // ── Gear Items ─────────────────────────────────────────────────────────────
   const gearItems = await prisma.$transaction([
-    // Provider 1 (Abdul Rahman)
+    // Provider 1 — Abdul Rahman (Cycling)
     prisma.gearItem.upsert({
-      where: { id: 'gear1' },
+      where: { id: IDS.gear1 },
       update: {},
       create: {
-        id: 'gear1',
+        id: IDS.gear1,
         name: 'Mountain Bike',
         description: 'High-performance mountain bike for off-road adventures',
         brand: 'Trek',
@@ -151,15 +197,15 @@ async function main() {
         stock: 2,
         images: ['https://example.com/bike1.jpg', 'https://example.com/bike2.jpg'],
         isAvailable: true,
-        providerId: providers[0].id,
-        categoryId: categories[0].id // Cycling
+        providerId: provider1.id,
+        categoryId: catCycling.id
       }
     }),
     prisma.gearItem.upsert({
-      where: { id: 'gear5' },
+      where: { id: IDS.gear5 },
       update: {},
       create: {
-        id: 'gear5',
+        id: IDS.gear5,
         name: 'City Bicycle',
         description: 'Comfortable city bike for daily commuting',
         brand: 'Hero',
@@ -167,16 +213,16 @@ async function main() {
         stock: 5,
         images: ['https://example.com/citybike.jpg'],
         isAvailable: true,
-        providerId: providers[0].id,
-        categoryId: categories[0].id // Cycling
+        providerId: provider1.id,
+        categoryId: catCycling.id
       }
     }),
-    // Provider 2 (Fatema Khan)
+    // Provider 2 — Fatema Khan (Camping)
     prisma.gearItem.upsert({
-      where: { id: 'gear2' },
+      where: { id: IDS.gear2 },
       update: {},
       create: {
-        id: 'gear2',
+        id: IDS.gear2,
         name: 'Camping Tent',
         description: '4-person waterproof camping tent',
         brand: 'Coleman',
@@ -184,15 +230,15 @@ async function main() {
         stock: 5,
         images: ['https://example.com/tent1.jpg'],
         isAvailable: true,
-        providerId: providers[1].id,
-        categoryId: categories[1].id // Camping
+        providerId: provider2.id,
+        categoryId: catCamping.id
       }
     }),
     prisma.gearItem.upsert({
-      where: { id: 'gear6' },
+      where: { id: IDS.gear6 },
       update: {},
       create: {
-        id: 'gear6',
+        id: IDS.gear6,
         name: 'Sleeping Bag',
         description: 'Warm sleeping bag for cold weather',
         brand: 'The North Face',
@@ -200,16 +246,16 @@ async function main() {
         stock: 8,
         images: ['https://example.com/sleepingbag.jpg'],
         isAvailable: true,
-        providerId: providers[1].id,
-        categoryId: categories[1].id // Camping
+        providerId: provider2.id,
+        categoryId: catCamping.id
       }
     }),
-    // Provider 3 (Sakib Hossain)
+    // Provider 3 — Sakib Hossain (Fitness)
     prisma.gearItem.upsert({
-      where: { id: 'gear3' },
+      where: { id: IDS.gear3 },
       update: {},
       create: {
-        id: 'gear3',
+        id: IDS.gear3,
         name: 'Yoga Mat',
         description: 'Non-slip yoga mat for fitness',
         brand: 'Lululemon',
@@ -217,15 +263,15 @@ async function main() {
         stock: 10,
         images: ['https://example.com/yoga1.jpg'],
         isAvailable: true,
-        providerId: providers[2].id,
-        categoryId: categories[2].id // Fitness
+        providerId: provider3.id,
+        categoryId: catFitness.id
       }
     }),
     prisma.gearItem.upsert({
-      where: { id: 'gear7' },
+      where: { id: IDS.gear7 },
       update: {},
       create: {
-        id: 'gear7',
+        id: IDS.gear7,
         name: 'Dumbbell Set',
         description: 'Adjustable dumbbell set (10-50kg)',
         brand: 'Bowflex',
@@ -233,15 +279,16 @@ async function main() {
         stock: 3,
         images: ['https://example.com/dumbbell.jpg'],
         isAvailable: true,
-        providerId: providers[2].id,
-        categoryId: categories[2].id // Fitness
+        providerId: provider3.id,
+        categoryId: catFitness.id
       }
     }),
+    // Provider 3 — Sakib Hossain (Water Sports)
     prisma.gearItem.upsert({
-      where: { id: 'gear4' },
+      where: { id: IDS.gear4 },
       update: {},
       create: {
-        id: 'gear4',
+        id: IDS.gear4,
         name: 'Kayak',
         description: '2-person touring kayak',
         brand: 'Pelican',
@@ -249,15 +296,15 @@ async function main() {
         stock: 1,
         images: ['https://example.com/kayak1.jpg'],
         isAvailable: true,
-        providerId: providers[2].id,
-        categoryId: categories[3].id // Water Sports
+        providerId: provider3.id,
+        categoryId: catWater.id
       }
     }),
     prisma.gearItem.upsert({
-      where: { id: 'gear8' },
+      where: { id: IDS.gear8 },
       update: {},
       create: {
-        id: 'gear8',
+        id: IDS.gear8,
         name: 'Stand Up Paddleboard',
         description: 'Inflatable SUP board',
         brand: 'Red Paddle Co',
@@ -265,143 +312,147 @@ async function main() {
         stock: 2,
         images: ['https://example.com/sup.jpg'],
         isAvailable: true,
-        providerId: providers[2].id,
-        categoryId: categories[3].id // Water Sports
+        providerId: provider3.id,
+        categoryId: catWater.id
       }
     })
   ])
-  console.log('Gear items created:', gearItems.map(g => g.name))
+  console.log('Gear items created:', gearItems.map(g => `${g.name} (${g.id})`))
 
-  // Create rental orders
+  // ── Rental Orders ──────────────────────────────────────────────────────────
   const rentalOrders = await prisma.$transaction([
     prisma.rentalOrder.upsert({
-      where: { id: 'rental1' },
+      where: { id: IDS.rental1 },
       update: {},
       create: {
-        id: 'rental1',
-        startDate: new Date(Date.now() + 86400000), // Tomorrow
-        endDate: new Date(Date.now() + 3 * 86400000), // 3 days from now
+        id: IDS.rental1,
+        startDate: new Date(Date.now() + 86400000),
+        endDate: new Date(Date.now() + 3 * 86400000),
         totalAmount: 1500,
         status: RentalStatus.PLACED,
-        customerId: customers[0].id,
+        customerId: customer1.id,
         gearId: gearItems[0].id
       }
     }),
     prisma.rentalOrder.upsert({
-      where: { id: 'rental2' },
+      where: { id: IDS.rental2 },
       update: {},
       create: {
-        id: 'rental2',
+        id: IDS.rental2,
         startDate: new Date(Date.now() + 2 * 86400000),
         endDate: new Date(Date.now() + 5 * 86400000),
         totalAmount: 900,
         status: RentalStatus.CONFIRMED,
-        customerId: customers[1].id,
+        customerId: customer2.id,
         gearId: gearItems[2].id
       }
     }),
     prisma.rentalOrder.upsert({
-      where: { id: 'rental3' },
+      where: { id: IDS.rental3 },
       update: {},
       create: {
-        id: 'rental3',
+        id: IDS.rental3,
         startDate: new Date(Date.now() - 5 * 86400000),
         endDate: new Date(Date.now() - 2 * 86400000),
         totalAmount: 450,
         status: RentalStatus.RETURNED,
-        customerId: customers[2].id,
+        customerId: customer3.id,
         gearId: gearItems[4].id
       }
     })
   ])
   console.log('Rental orders created:', rentalOrders.map(r => r.id))
 
-  // Create payments
+  // ── Payments ───────────────────────────────────────────────────────────────
   const payments = await prisma.$transaction([
     prisma.payment.upsert({
-      where: { id: 'payment1' },
+      where: { id: IDS.payment1 },
       update: {},
       create: {
-        id: 'payment1',
-        transactionId: 'TXN1001',
+        id: IDS.payment1,
+        transactionId: 'TRNX_ID_1000000001',
         rentalOrderId: rentalOrders[0].id,
         amount: 1500,
         method: PaymentMethod.SSLCOMMERZ,
         status: PaymentStatus.COMPLETED,
         paidAt: new Date(),
-        gatewayResponse: JSON.stringify({ status: 'success', transId: 'TXN1001' })
+        gatewayResponse: { status: 'success', transId: 'TRNX_ID_1000000001' }
       }
     }),
     prisma.payment.upsert({
-      where: { id: 'payment2' },
+      where: { id: IDS.payment2 },
       update: {},
       create: {
-        id: 'payment2',
-        transactionId: 'TXN1002',
+        id: IDS.payment2,
+        transactionId: 'TRNX_ID_1000000002',
         rentalOrderId: rentalOrders[1].id,
         amount: 900,
         method: PaymentMethod.SSLCOMMERZ,
         status: PaymentStatus.PENDING,
         paidAt: null,
-        gatewayResponse: JSON.stringify({ status: 'pending' })
+        gatewayResponse: { status: 'pending' }
       }
     }),
     prisma.payment.upsert({
-      where: { id: 'payment3' },
+      where: { id: IDS.payment3 },
       update: {},
       create: {
-        id: 'payment3',
-        transactionId: 'TXN1003',
+        id: IDS.payment3,
+        transactionId: 'TRNX_ID_1000000003',
         rentalOrderId: rentalOrders[2].id,
         amount: 450,
         method: PaymentMethod.SSLCOMMERZ,
         status: PaymentStatus.COMPLETED,
         paidAt: new Date(Date.now() - 3 * 86400000),
-        gatewayResponse: JSON.stringify({ status: 'success', transId: 'TXN1003' })
+        gatewayResponse: { status: 'success', transId: 'TRNX_ID_1000000003' }
       }
     })
   ])
   console.log('Payments created:', payments.map(p => p.id))
 
-  // Create reviews
+  // ── Reviews ────────────────────────────────────────────────────────────────
   const reviews = await prisma.$transaction([
     prisma.review.upsert({
-      where: { id: 'review1' },
+      where: { id: IDS.review1 },
       update: {},
       create: {
-        id: 'review1',
+        id: IDS.review1,
         rating: 5,
         comment: 'অসাধারণ মাউন্টেন বাইক! অফ-রোড ট্রেইলের জন্য নিখুঁত।',
-        userId: customers[0].id,
+        userId: customer1.id,
         gearId: gearItems[0].id
       }
     }),
     prisma.review.upsert({
-      where: { id: 'review2' },
+      where: { id: IDS.review2 },
       update: {},
       create: {
-        id: 'review2',
+        id: IDS.review2,
         rating: 4,
         comment: 'ভালো ক্যাম্পিং টেন্ট, তবে জিনিসটা একটু ভারী।',
-        userId: customers[1].id,
+        userId: customer2.id,
         gearId: gearItems[2].id
       }
     }),
     prisma.review.upsert({
-      where: { id: 'review3' },
+      where: { id: IDS.review3 },
       update: {},
       create: {
-        id: 'review3',
+        id: IDS.review3,
         rating: 5,
         comment: 'যোগা ম্যাটটা খুবই কমফর্টেবল!',
-        userId: customers[2].id,
+        userId: customer3.id,
         gearId: gearItems[4].id
       }
     })
   ])
   console.log('Reviews created:', reviews.map(r => r.id))
 
-  console.log('Seeding complete!')
+  console.log('\n✅ Seeding complete!')
+  console.log('\n📋 Gear IDs for testing:')
+  gearItems.forEach(g => console.log(`  ${g.name}: ${g.id}`))
+  console.log('\n📋 Category IDs for testing:')
+  ;[catCycling, catCamping, catFitness, catWater].forEach(c => console.log(`  ${c.name}: ${c.id}`))
 }
 
 main()

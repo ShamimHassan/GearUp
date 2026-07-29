@@ -20,8 +20,10 @@ const createPayment = async (req: any, res: Response, next: NextFunction) => {
 
 const confirmPayment = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { orderId, tranId, status } = req.query;
-    const payload = { ...req.body, ...req.query };
+    // SSLCommerz sends params in query string; manual testing may send in body
+    const merged = { ...req.body, ...req.query }
+    const { orderId, tranId, status } = merged
+    const payload = merged
 
     const response = await paymentService.confirmPayment(
       orderId as string,
@@ -31,14 +33,23 @@ const confirmPayment = async (req: Request, res: Response, next: NextFunction) =
     );
 
     if (response === 'success') {
-      // Redirect to your frontend success page
-      res.redirect(`${process.env.APP_URL}/payment-success`);
+      res.status(200).json({
+        success: true,
+        message: 'Payment completed successfully. Your rental order is now PAID.',
+        data: { orderId, transactionId: tranId, status: 'COMPLETED' }
+      });
     } else if (response === 'fail') {
-      // Redirect to your frontend fail page
-      res.redirect(`${process.env.APP_URL}/payment-fail`);
+      res.status(400).json({
+        success: false,
+        message: 'Payment failed. Please try again.',
+        data: { orderId, transactionId: tranId, status: 'FAILED' }
+      });
     } else if (response === 'cancel') {
-      // Redirect to your frontend cancel page
-      res.redirect(`${process.env.APP_URL}/payment-cancel`);
+      res.status(400).json({
+        success: false,
+        message: 'Payment was cancelled.',
+        data: { orderId, transactionId: tranId, status: 'FAILED' }
+      });
     }
   } catch (error) {
     next(error);
