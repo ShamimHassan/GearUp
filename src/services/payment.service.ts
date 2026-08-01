@@ -55,9 +55,10 @@ const createPaymentInDB = async (
     total_amount: String(rentalOrder.totalAmount),
     currency: 'BDT',
     tran_id: transactionId,
+    // Redirect back to FRONTEND success/cancel pages after SSLCommerz
     success_url: `${process.env.APP_URL}/api/payments/confirm?orderId=${rentalOrder.id}&tranId=${transactionId}&status=success`,
-    fail_url: `${process.env.APP_URL}/api/payments/confirm?orderId=${rentalOrder.id}&tranId=${transactionId}&status=fail`,
-    cancel_url: `${process.env.APP_URL}/api/payments/confirm?orderId=${rentalOrder.id}&tranId=${transactionId}&status=cancel`,
+    fail_url:    `${process.env.APP_URL}/api/payments/confirm?orderId=${rentalOrder.id}&tranId=${transactionId}&status=fail`,
+    cancel_url:  `${process.env.APP_URL}/api/payments/confirm?orderId=${rentalOrder.id}&tranId=${transactionId}&status=cancel`,
     cus_name: customer.name ?? 'Customer',
     cus_email: customer.email,
     cus_add1: 'N/A',
@@ -80,8 +81,18 @@ const createPaymentInDB = async (
     throw new AppError('Failed to initiate payment gateway. Please try again.', 500);
   }
 
-  await prisma.payment.create({
-    data: {
+  // Upsert: if a PENDING/FAILED record exists for this order, update it with
+  // the new transactionId instead of creating a duplicate (avoids unique constraint)
+  await prisma.payment.upsert({
+    where: { rentalOrderId: rentalOrder.id },
+    update: {
+      transactionId,
+      status: PaymentStatus.PENDING,
+      method: PaymentMethod.SSLCOMMERZ,
+      paidAt: undefined,
+      gatewayResponse: undefined,
+    },
+    create: {
       transactionId,
       rentalOrderId: rentalOrder.id,
       amount: rentalOrder.totalAmount,

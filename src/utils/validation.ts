@@ -39,7 +39,8 @@ export const gearItemSchema = z.object({
   price: z.number().positive('Price must be positive'),
   stock: z.number().int().min(0, 'Stock cannot be negative'),
   images: z.array(z.string()).optional(),
-  categoryId: z.string().uuid('Invalid category ID')
+  categoryId: z.string().uuid('Invalid category ID'),
+  isAvailable: z.boolean().optional(),
 })
 
 export const rentalOrderSchema = z.object({

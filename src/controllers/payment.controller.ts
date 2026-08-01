@@ -25,6 +25,8 @@ const confirmPayment = async (req: Request, res: Response, next: NextFunction) =
     const { orderId, tranId, status } = merged
     const payload = merged
 
+    const frontendUrl = process.env.FRONTEND_URL || 'https://gearup-frontend-nu.vercel.app'
+
     const response = await paymentService.confirmPayment(
       orderId as string,
       tranId as string,
@@ -33,23 +35,20 @@ const confirmPayment = async (req: Request, res: Response, next: NextFunction) =
     );
 
     if (response === 'success') {
-      res.status(200).json({
-        success: true,
-        message: 'Payment completed successfully. Your rental order is now PAID.',
-        data: { orderId, transactionId: tranId, status: 'COMPLETED' }
-      });
-    } else if (response === 'fail') {
-      res.status(400).json({
-        success: false,
-        message: 'Payment failed. Please try again.',
-        data: { orderId, transactionId: tranId, status: 'FAILED' }
-      });
+      // Redirect to frontend success page with query params
+      return res.redirect(
+        `${frontendUrl}/payment/success?order_id=${orderId}&tran_id=${tranId}&status=COMPLETED`
+      );
     } else if (response === 'cancel') {
-      res.status(400).json({
-        success: false,
-        message: 'Payment was cancelled.',
-        data: { orderId, transactionId: tranId, status: 'FAILED' }
-      });
+      // Redirect to frontend cancel page
+      return res.redirect(
+        `${frontendUrl}/payment/cancel?order_id=${orderId}&tran_id=${tranId}`
+      );
+    } else {
+      // fail — redirect to cancel page with error indicator
+      return res.redirect(
+        `${frontendUrl}/payment/cancel?order_id=${orderId}&tran_id=${tranId}&failed=1`
+      );
     }
   } catch (error) {
     next(error);
